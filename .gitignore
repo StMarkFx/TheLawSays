@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.pytest_cache/
+.coverage
+.cache
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Generated indices (can be regenerated with build_index.py)
+# Uncomment these lines if you want to exclude large index files from git:
+# bm25_index.pkl
+# legal_index.faiss
+# documents.json
+
+# Logs
+*.log
+logs/
+
+# Learning resources (personal study files)
+evaluation.md
