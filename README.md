@@ -24,18 +24,18 @@ graph TD
     C --> F[MiniLM → embeddings → FAISS]
     F --> G[legal_index.faiss compressed]
 
-    H[User Query] --> I{Conversational Query?}
+    H[User Query] --> I{Conversational?}
 
-    I -->|YES "hi", "thanks"| J[Simple Response]
-    J --> K[Answer with greeting]
+    I -->|YES: hi, thanks| J[Simple Response]
+    J --> K[Greeting only]
 
-    I -->|NO Legal Question| L[Hybrid: FAISS + BM25]
-    L --> M[Retrieved chunks from documents.json]
-    M --> N[Prompt + OpenAI + Context]
-    N --> O[Answer with legal citations]
+    I -->|NO: Legal Question| L[Hybrid Search]
+    L --> M[Retrieved chunks]
+    M --> N[Prompt + AI]
+    N --> O[Cited legal answer]
 
     K --> P[No RAG execution]
-    O --> Q[RAG execution = citations shown]
+    O --> Q[Citations shown]
 ```
 
 **Smart conditional process:**
