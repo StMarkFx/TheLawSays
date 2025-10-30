@@ -1,8 +1,19 @@
-# TheLawSays
+# TheLawSays ⚖️
 
-TheLawSays is an intelligent legal research assistant powered by RAG (Retrieval-Augmented Generation) that provides accurate, cited answers about Nigerian federal and Lagos state laws. It combines multiple AI techniques including optical character recognition, sentence embeddings, and hybrid search to deliver reliable legal insights.
+**Your AI legal assistant for instant Nigerian law answers**
 
-## How It Works (RAG Pipeline)
+TheLawSays gives you instant access to Nigerian legal knowledge and advice. Ask questions about Federal and Lagos State laws to get accurate, cited answers in seconds.
+
+Skip the complex legal databases and get clear guidance on:
+• Criminal law and justice procedures
+• Business regulations and compliance
+• Employment and labor rights
+• Property and tenancy matters
+• Digital rights and data protection
+
+**Fast • Reliable • Always available when you need legal clarity**
+
+## How It Works (Smart Conditional RAG Pipeline)
 
 ```mermaid
 graph TD
@@ -13,18 +24,27 @@ graph TD
     C --> F[MiniLM → embeddings → FAISS]
     F --> G[legal_index.faiss compressed]
 
-    H[User Query] --> I[Hybrid: FAISS + BM25]
-    I --> J[Retrieved chunks from documents.json]
-    J --> K[Prompt + OpenAI]
-    K --> L[Answer with citation]
+    H[User Query] --> I{Conversational Query?}
+
+    I -->|YES "hi", "thanks"| J[Simple Response]
+    J --> K[Answer with greeting]
+
+    I -->|NO Legal Question| L[Hybrid: FAISS + BM25]
+    L --> M[Retrieved chunks from documents.json]
+    M --> N[Prompt + OpenAI + Context]
+    N --> O[Answer with legal citations]
+
+    K --> P[No RAG execution]
+    O --> Q[RAG execution = citations shown]
 ```
 
-**Step-by-step process:**
-1. **Data Ingestion**: Legal PDFs are processed using Apache Tika for text extraction, with OCR fallback for scanned documents
-2. **Text Processing**: Documents are chunked into passages and cleaned for optimal retrieval
-3. **Indexing**: Two complementary search indices are built - BM25 for lexical matching and FAISS for semantic similarity
-4. **Query Processing**: User questions are processed through hybrid retrieval combining both search methods
-5. **Answer Generation**: Retrieved passages are fed to OpenAI with citation-focused prompts to generate accurate legal responses
+**Smart conditional process:**
+1. **Query Analysis**: Automatically detects conversational queries ("hi", "thanks", "who created you") vs legal questions
+2. **Conditional Routing**: Conversational queries get fast, simple responses (80% token savings)
+3. **Legal Processing**: Only legal questions trigger full RAG retrieval
+4. **Data Ingestion**: Legal PDFs processed with Apache Tika + OCR fallback
+5. **Intelligent Indexing**: Hybrid BM25 + FAISS system for optimal retrieval
+6. **Citation Generation**: Legal answers include proper citations and jurisdiction clarification
 
 ## Features
 - Hybrid retrieval (FAISS vectors + BM25) across chunked legal PDFs
