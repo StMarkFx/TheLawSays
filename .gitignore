@@ -28,11 +28,21 @@ Thumbs.db
 # Streamlit
 .streamlit/secrets.toml
 
-# Generated indices (can be regenerated with build_index.py)
-# Uncomment these lines if you want to exclude large index files from git:
-# bm25_index.pkl
-# legal_index.faiss
-# documents.json
+# Generated indices (regenerate with build_index.py)
+bm25_index.pkl
+legal_index.faiss
+documents.json
+
+# Node / Next.js
+web/node_modules/
+web/.next/
+web/.turbo/
+web/dist/
+web/.env.local
+
+# Python env files
+.env
+api/.env
 
 # Logs
 *.log
@@ -40,3 +50,5 @@ logs/
 
 # Learning resources (personal study files)
 evaluation.md
+upgrade.md
+laws-to-add.md
