@@ -28,10 +28,12 @@ Thumbs.db
 # Streamlit
 .streamlit/secrets.toml
 
-# Generated indices (regenerate with build_index.py)
-bm25_index.pkl
-legal_index.faiss
-documents.json
+# Generated indices (regenerate with build_index.py) --commented out for railway deployment
+# bm25_index.pkl
+# legal_index.faiss
+# documents.json
+
+
 
 # Node / Next.js
 web/node_modules/
