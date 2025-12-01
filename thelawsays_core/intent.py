@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from openai import OpenAI
 
@@ -78,7 +78,7 @@ class IntentDetector:
         self.model = model
         self._cache: Dict[str, IntentDecision] = {}
 
-    def classify(self, query: str) -> IntentDecision:
+    def classify(self, query: str, history: Optional[List[Dict[str, str]]] = None) -> IntentDecision:
         normalised = query.strip()
         if not normalised:
             return IntentDecision(label="conversational", retrieval_required=False, reason="empty-query")
@@ -102,7 +102,7 @@ class IntentDetector:
 
         if self.client:
             try:
-                decision = self._classify_with_openai(normalised)
+                decision = self._classify_with_openai(normalised, history)
                 self._cache[lowered] = decision
                 return decision
             except Exception:
@@ -122,21 +122,39 @@ class IntentDetector:
     def _matches_conversational_patterns(self, lowered: str) -> bool:
         return any(pattern.search(lowered) for pattern in CONVERSATIONAL_PATTERNS)
 
-    def _classify_with_openai(self, query: str) -> IntentDecision:
+    def _classify_with_openai(
+        self, query: str, history: Optional[List[Dict[str, str]]] = None
+    ) -> IntentDecision:
+        history = history or []
+        system_prompt = """
+You are an expert intent classifier for a Nigerian legal chatbot. Your task is to classify the user's LATEST message based on the provided chat history.
+
+- If the message seeks legal information, asks about laws, rights, legal procedures, or requires legal context to answer accurately, classify it as `legal_lookup`.
+- If the message is a greeting, small talk, a thank you, or a meta-question about the chatbot itself, classify it as `conversational`.
+
+Consider the full conversation context. A follow-up question like "what is the penalty for that?" after a legal discussion is a `legal_lookup`.
+
+Respond with ONLY the label (`legal_lookup` or `conversational`).
+
+--- EXAMPLES ---
+- User: "hello there" -> conversational
+- User: "who are you?" -> conversational
+- User: "tell me something cool about the law" -> conversational
+- User: "what does the law say about tenant rights in Lagos?" -> legal_lookup
+- User: "thanks for the info" -> conversational
+- User (after a discussion on rental law): "and what about eviction notices?" -> legal_lookup
+- User: "can you cite the relevant section?" -> legal_lookup
+- User: "what's an interesting legal case?" -> conversational
+"""
+        messages = [{"role": "system", "content": system_prompt.strip()}]
+        messages.extend(history)
+        messages.append({"role": "user", "content": query})
+
         response = self.client.chat.completions.create(
             model=self.model,
             temperature=0,
-            max_tokens=2,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "Classify the user message as either `legal_lookup` when they seek Nigerian legal "
-                        "guidance requiring citations, or `conversational` otherwise. Respond with only the label."
-                    ),
-                },
-                {"role": "user", "content": query},
-            ],
+            max_tokens=5,
+            messages=messages,
         )
         label = (response.choices[0].message.content or "").strip().lower()
         if label not in {"legal_lookup", "conversational"}:
