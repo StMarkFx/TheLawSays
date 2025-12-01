@@ -18,7 +18,7 @@ export interface Chunk {
 
 export interface ChatRequest {
   message: string;
-  conversation: Array<{ role: Role; content: string }>;
+  history: Array<{ role: Role; content: string }>;
   jurisdiction?: string | null;
   top_k?: number;
 }
@@ -27,7 +27,6 @@ export interface ChatResponse {
   answer: string;
   chunks: Chunk[];
   retrieval_used: boolean;
-  conversation_id: string;
   metadata: Record<string, unknown>;
 }
 

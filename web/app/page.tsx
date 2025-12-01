@@ -16,10 +16,10 @@ export default function Page() {
   const [retrievalUsed, setRetrievalUsed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string>(() => uuid());
   const [error, setError] = useState<string | null>(null);
 
-  const conversationPayload = useMemo(
+  const historyPayload = useMemo(
     () => messages.map(({ role, content }) => ({ role, content })),
     [messages],
   );
@@ -35,12 +35,12 @@ export default function Page() {
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, userMessage]);
-      const nextConversation = [...conversationPayload, { role: "user", content }];
+      const nextHistory = [...historyPayload, { role: "user", content }];
       setLoading(true);
       try {
         const response = await sendChat({
           message: content,
-          conversation: nextConversation,
+          history: nextHistory,
         });
         const assistantMessage: Message = {
           id: uuid(),
@@ -51,14 +51,13 @@ export default function Page() {
         setMessages((prev) => [...prev, assistantMessage]);
         setChunks(response.chunks);
         setRetrievalUsed(response.retrieval_used);
-        setConversationId(response.conversation_id);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong.");
       } finally {
         setLoading(false);
       }
     },
-    [conversationPayload, loading],
+    [historyPayload, loading],
   );
 
   const handleFeedback = useCallback(
@@ -88,7 +87,7 @@ export default function Page() {
     setMessages([]);
     setChunks([]);
     setRetrievalUsed(false);
-    setConversationId(null);
+    setConversationId(uuid());
     setError(null);
   }, []);
 

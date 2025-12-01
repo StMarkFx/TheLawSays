@@ -46,7 +46,7 @@ export function Sidebar({ open, onClose, loading }: SidebarProps) {
                 className="mt-3 inline-flex items-center gap-2 text-sm text-foreground underline decoration-dotted underline-offset-4 transition hover:text-accent"
               >
                 <Github size={16} />
-                GitHub repo: github.com/StMarkFx/TheLawSays
+                GitHub: github.com/StMarkFx/TheLawSays
               </Link>
             </section>
 
