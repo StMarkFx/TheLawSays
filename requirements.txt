@@ -1,11 +1,14 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 numpy<2.0
 sentence-transformers==2.2.2
 transformers==4.30.2
-torch==2.2.2
+torch==2.2.2+cpu
 faiss-cpu==1.7.4
 rank-bm25>=0.2.2
 tika
 spacy>=3.7
+en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0.tar.gz
 pytesseract
 pdf2image
 pillow
