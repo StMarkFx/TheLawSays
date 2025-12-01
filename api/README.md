@@ -15,7 +15,7 @@ This service powers the production backend for TheLawSays. It exposes retrieval-
 ```json
 {
   "message": "What does the law say about fraud?",
-  "conversation": [
+  "history": [
     {"role": "assistant", "content": "Hello! Ask about Nigerian law."}
   ],
   "jurisdiction": "Federal",
@@ -38,7 +38,6 @@ Response:
     }
   ],
   "retrieval_used": true,
-  "conversation_id": "f0c3d9b4-4a9c-4a4e-9f3e-89c41b8ba6ee",
   "metadata": {
     "jurisdiction": "Federal",
     "intent_label": "legal_lookup"

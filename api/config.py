@@ -3,25 +3,45 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from thelawsays_core.settings import DEFAULT_ALPHA, DEFAULT_OPENAI_MODEL, DEFAULT_TOP_K
 
 
 class Settings(BaseSettings):
-    openai_api_key: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
-    openai_model: str = Field(default=DEFAULT_OPENAI_MODEL, env="OPENAI_MODEL")
-    retrieval_top_k: int = Field(default=DEFAULT_TOP_K, env="RETRIEVAL_TOP_K")
-    retrieval_alpha: float = Field(default=DEFAULT_ALPHA, env="RETRIEVAL_ALPHA")
-    allow_origins: str = Field(default="http://localhost:3000", env="ALLOW_ORIGINS")
-    environment: str = Field(default="development", env="ENVIRONMENT")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    openai_api_key: Optional[str] = Field(
+        default=None,
+        validation_alias="OPENAI_API_KEY",
+    )
+    openai_model: str = Field(
+        default=DEFAULT_OPENAI_MODEL,
+        validation_alias="OPENAI_MODEL",
+    )
+    retrieval_top_k: int = Field(
+        default=DEFAULT_TOP_K,
+        validation_alias="RETRIEVAL_TOP_K",
+    )
+    retrieval_alpha: float = Field(
+        default=DEFAULT_ALPHA,
+        validation_alias="RETRIEVAL_ALPHA",
+    )
+    allow_origins: str = Field(
+        default="http://localhost:3000",
+        validation_alias="ALLOW_ORIGINS",
+    )
+    environment: str = Field(
+        default="development",
+        validation_alias="ENVIRONMENT",
+    )
+    enable_moderation: bool = Field(
+        default=True,
+        validation_alias="ENABLE_MODERATION",
+    )
 
 
 @lru_cache()
