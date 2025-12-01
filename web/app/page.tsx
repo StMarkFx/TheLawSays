@@ -8,7 +8,7 @@ import { Composer } from "@/components/Composer";
 import { LayoutShell } from "@/components/LayoutShell";
 import { Sidebar } from "@/components/Sidebar";
 import { sendChat, sendFeedback } from "@/lib/api";
-import type { Chunk, Message } from "@/lib/types";
+import type { Chunk, Message, Role } from "@/lib/types";
 
 export default function Page() {
   const [messages, setMessages] = useState<Message[]>([]);
