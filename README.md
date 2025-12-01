@@ -47,6 +47,16 @@ python build_index.py
 
 Place PDFs in `laws/federal` and `laws/lagos` before running `build_index.py`. The script emits `documents.json`, `legal_index.faiss`, and `bm25_index.pkl` in the repo root.
 
+#### Required artifacts for deployment
+
+| File | Approx size | Purpose | Notes |
+| --- | --- | --- | --- |
+| `documents.json` | ~6.5 MB | Serialized chunk metadata/content | Must reside in repo root or mounted volume |
+| `legal_index.faiss` | ~19 MB | Dense vector index for FAISS search | Requires CPU build of FAISS present on host |
+| `bm25_index.pkl` | ~5 MB | Sparse BM25 index for hybrid retrieval | Loaded alongside FAISS during startup |
+
+These assets are git-ignored; upload them to your hosting volume (e.g., Railway persistent disk, S3 + download step) so FastAPI can load them when `load_knowledge_base()` runs.
+
 ### 2. Configure Environment Variables
 
 ```bash
@@ -58,8 +68,13 @@ cp web/.env.local.example web/.env.local
 | Variable | Location | Notes |
 | --- | --- | --- |
 | `OPENAI_API_KEY` | `.env`, `api/.env`, `app.py` | Required for FastAPI + Streamlit |
+| `OPENAI_MODEL` | `api/.env` | Defaults to `gpt-4o-mini`, set to any chat-capable model |
 | `NEXT_PUBLIC_API_BASE_URL` | `web/.env.local` | Defaults to `http://localhost:8000` |
-| `ALLOW_ORIGINS` | `api/.env` | Optional CORS override |
+| `ALLOW_ORIGINS` | `api/.env` | Comma-separated CORS origins (include Railway/Vercel URLs) |
+| `RETRIEVAL_TOP_K` | `api/.env` | Overrides default chunk count (5) |
+| `RETRIEVAL_ALPHA` | `api/.env` | Hybrid FAISS/BM25 weighting (0-1, default 0.65) |
+| `ENABLE_MODERATION` | `api/.env` | Toggle OpenAI moderation guard (`true`/`false`) |
+| `ENVIRONMENT` | `api/.env` | `development`, `test`, or `production` |
 
 ### 3. Run Everything
 
