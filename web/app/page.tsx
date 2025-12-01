@@ -20,7 +20,7 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null);
 
   const historyPayload = useMemo<Array<{ role: Role; content: string }>>(
-    () => messages.map(({ role, content }) => ({ role, content })),
+    () => messages.map(({ role, content }): { role: Role; content: string } => ({ role, content })),
     [messages],
   );
 
