@@ -20,7 +20,7 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null);
 
   const historyPayload = useMemo<Array<{ role: Role; content: string }>>(
-    () => messages.map(({ role, content }): { role: Role; content: string } => ({ role, content })),
+    () => messages.map(({ role, content }) => ({ role, content })),
     [messages],
   );
 
@@ -35,10 +35,10 @@ export default function Page() {
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, userMessage]);
-      const nextHistory: Array<{ role: Role; content: string }> = [
+      const nextHistory = [
         ...historyPayload,
         { role: "user" as Role, content },
-      ];
+      ] as Array<{ role: Role; content: string }>;
       setLoading(true);
       try {
         const response = await sendChat({
