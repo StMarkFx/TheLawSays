@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from api import dependencies
 from api.config import get_settings
 from api.main import create_app
+from api.routes import chat as chat_routes
 from api.schemas import ChatResponse
 
 
@@ -15,7 +16,6 @@ class StubRagService:
             answer="stubbed response",
             chunks=[],
             retrieval_used=False,
-            conversation_id="test-convo",
             metadata={"intent_label": "conversational"},
         )
 
@@ -25,8 +25,11 @@ def client(monkeypatch) -> TestClient:
     monkeypatch.setenv("ENVIRONMENT", "test")
     get_settings.cache_clear()
     dependencies.get_rag_service.cache_clear()
-    monkeypatch.setattr(dependencies, "get_rag_service", lambda: StubRagService())
+    stub_service = StubRagService()
+    monkeypatch.setattr(dependencies, "get_rag_service", lambda: stub_service)
     app = create_app()
+    app.dependency_overrides[dependencies.get_rag_service] = lambda: stub_service
+    app.dependency_overrides[chat_routes.get_rag_service] = lambda: stub_service
     with TestClient(app) as test_client:
         yield test_client
 
@@ -43,7 +46,6 @@ def test_chat_endpoint_returns_data(client: TestClient):
     data = response.json()
     assert data["answer"] == "stubbed response"
     assert data["retrieval_used"] is False
-    assert data["conversation_id"] == "test-convo"
 
 
 def test_feedback_endpoint_accepts_payload(client: TestClient):
