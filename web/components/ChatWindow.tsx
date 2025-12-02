@@ -2,7 +2,7 @@
 
 import { Clipboard, Loader2 } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Chunk, Message } from "@/lib/types";
 
@@ -29,6 +29,7 @@ const markdownComponents: Components = {
 
 export function ChatWindow({ messages, loading, chunks, retrievalUsed, onFeedback, onCopyAnswer }: ChatWindowProps) {
   const [feedbackGiven, setFeedbackGiven] = useState(false);
+  const scrollRef = useRef<HTMLElement>(null);
 
   const assistantMessages = useMemo(() => messages.filter((message) => message.role === "assistant"), [messages]);
   const latestAssistant = assistantMessages[assistantMessages.length - 1];
@@ -38,15 +39,24 @@ export function ChatWindow({ messages, loading, chunks, retrievalUsed, onFeedbac
     setFeedbackGiven(false);
   }, [latestAssistant?.id]);
 
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
   const handleFeedback = (rating: "thumbs_up" | "thumbs_down") => {
     onFeedback(rating);
     setFeedbackGiven(true);
   };
 
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-y-auto px-4 pt-6 pb-6 md:px-0">
+    <section
+      ref={scrollRef}
+      className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-y-auto px-4 pt-6 pb-6 md:px-0"
+    >
       {showEmptyState ? (
-        <div className="flex flex-col gap-4 text-center text-muted">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center text-muted">
           {loading ? (
             <HeroSkeleton />
           ) : (
