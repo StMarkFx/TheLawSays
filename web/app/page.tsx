@@ -95,10 +95,7 @@ export default function Page() {
   }, []);
 
   return (
-    <LayoutShell
-      onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
-      onNewChat={handleNewChat}
-    >
+    <LayoutShell onToggleSidebar={() => setSidebarOpen((prev) => !prev)} onNewChat={handleNewChat}>
       <Sidebar open={isSidebarOpen} onClose={() => setSidebarOpen(false)} loading={loading} />
 
       {isSidebarOpen && (
@@ -110,24 +107,26 @@ export default function Page() {
         />
       )}
 
-      <div className="flex flex-1 justify-center px-4 pb-40 pt-6 md:px-8">
-        <ChatWindow
-          messages={messages}
-          loading={loading}
-          chunks={retrievalUsed ? chunks : []}
-          retrievalUsed={retrievalUsed}
-          onFeedback={handleFeedback}
-          onCopyAnswer={handleCopyAnswer}
-        />
-      </div>
+      <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 justify-center px-4 pt-6 md:px-8">
+          <ChatWindow
+            messages={messages}
+            loading={loading}
+            chunks={retrievalUsed ? chunks : []}
+            retrievalUsed={retrievalUsed}
+            onFeedback={handleFeedback}
+            onCopyAnswer={handleCopyAnswer}
+          />
+        </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-5 pt-2 md:px-8">
-        <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-2">
-          {error && <p className="w-full text-center text-sm text-red-400">{error}</p>}
-          <Composer onSubmit={handleSubmit} disabled={loading} className="w-full" />
-          <p className="text-center text-xs text-muted">
-            Built for educational research. Consult qualified lawyers for legal advice.
-          </p>
+        <div className="border-t border-border bg-background/95 px-4 pb-5 pt-2 md:px-8">
+          <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-2">
+            {error && <p className="w-full text-center text-sm text-red-400">{error}</p>}
+            <Composer onSubmit={handleSubmit} disabled={loading} className="w-full" />
+            <p className="text-center text-xs text-muted">
+              Built for educational research. Consult qualified lawyers for legal advice.
+            </p>
+          </div>
         </div>
       </div>
     </LayoutShell>

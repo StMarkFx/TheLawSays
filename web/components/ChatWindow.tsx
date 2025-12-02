@@ -44,19 +44,21 @@ export function ChatWindow({ messages, loading, chunks, retrievalUsed, onFeedbac
   };
 
   return (
-    <section className="mx-auto flex h-[calc(100vh-230px)] w-full max-w-3xl flex-col overflow-y-auto px-4 pt-6 pb-16 md:px-0">
+    <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-y-auto px-4 pt-6 pb-6 md:px-0">
       {showEmptyState ? (
-        <div className="flex flex-1 items-center justify-center">
+        <div className="flex flex-col gap-4 text-center text-muted">
           {loading ? (
             <HeroSkeleton />
           ) : (
-            <div className="flex flex-col items-center gap-4 text-center text-muted">
-              <p className="text-2xl font-medium text-foreground">Empower yourself with Nigerian law—at your fingertips.</p>
-              <p className="text-base">
-                Ask any question about Federal or Lagos State statutes and get instant, verifiable answers backed by exact sections
-                and citations.
+            <>
+              <p className="text-2xl font-medium text-foreground">
+                Empower yourself with Nigerian law—at your fingertips.
               </p>
-            </div>
+              <p className="text-base">
+                Ask any question about Federal or Lagos State statutes and get instant, verifiable answers
+                backed by exact sections and citations.
+              </p>
+            </>
           )}
         </div>
       ) : (
