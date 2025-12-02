@@ -8,9 +8,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from config import get_settings
-from dependencies import get_rag_service
-from routes import get_api_router
+from .config import get_settings
+from .dependencies import get_rag_service
+from .routes import get_api_router
 
 logger = logging.getLogger(__name__)
 
