@@ -5,7 +5,7 @@ This interface remains for quick local experimentation. The production-ready
 experience will live in the FastAPI + Next.js stack (see ``upgrade.md``).
 
 To switch back to this version at any time:
-1. Ensure ``documents.json``, ``legal_index.faiss`` and ``bm25_index.pkl`` exist.
+1. Ensure ``documents.json``, ``legal_index.faiss`` and ``bm25_index.pkl`` exist in the ``data/`` directory.
 2. Add your OpenAI key to ``.streamlit/secrets.toml`` as ``OPENAI_API_KEY``.
 3. Run ``streamlit run app.py``.
 

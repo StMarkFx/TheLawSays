@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
         except FileNotFoundError as exc:
             logger.error(
                 "Knowledge base files not found: %s. "
-                "Please ensure documents.json, legal_index.faiss, and bm25_index.pkl exist in the repository root.",
+                "Please ensure documents.json, legal_index.faiss, and bm25_index.pkl exist in the data/ directory.",
                 exc
             )
             # Continue startup - service will fail on first request with clear error
