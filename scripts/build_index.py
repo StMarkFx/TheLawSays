@@ -28,9 +28,9 @@ import functools
 
 
 BASE_DIR = Path("laws")
-OUTPUT_DOCS = Path("documents.json")
-OUTPUT_FAISS = Path("legal_index.faiss")
-OUTPUT_BM25 = Path("bm25_index.pkl")
+OUTPUT_DOCS = Path("data/documents.json")
+OUTPUT_FAISS = Path("data/indices/legal_index.faiss")
+OUTPUT_BM25 = Path("data/indices/bm25_index.pkl")
 
 MIN_CHARS_PER_CHUNK = 50
 MIN_WORDS_PER_CHUNK = 8
@@ -50,7 +50,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('build_index.log'),
+        logging.FileHandler('data/logs/build_index.log'),
         logging.StreamHandler()
     ]
 )

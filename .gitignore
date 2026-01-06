@@ -29,9 +29,9 @@ Thumbs.db
 .streamlit/secrets.toml
 
 # Generated indices (regenerate with build_index.py) --commented out for railway deployment
-# bm25_index.pkl
-# legal_index.faiss
-# documents.json
+data/indices/
+data/logs/
+data/documents.json
 
 
 
@@ -50,7 +50,6 @@ api/.env
 *.log
 logs/
 
-# Learning resources (personal study files)
-evaluation.md
-upgrade.md
-laws-to-add.md
+# Personal notes and documentation
+notes/
+docs/
