@@ -22,8 +22,9 @@ Modern AI legal assistant for Nigerian statutes with cited answers powered by a 
 ## Architecture Overview
 
 ```
-PDF statutes --> build_index.py --> documents.json / legal_index.faiss / bm25_index.pkl
-                                  |
+PDF statutes --> build_index.py --> data/documents.json
+                                  |                  data/indices/legal_index.faiss
+                                  |                  data/indices/bm25_index.pkl
                                   v
                           thelawsays_core/
                                   |
@@ -45,24 +46,24 @@ python -m spacy download en_core_web_sm
 python build_index.py
 ```
 
-Place PDFs in `laws/federal` and `laws/lagos` before running `build_index.py`. The script emits `documents.json`, `legal_index.faiss`, and `bm25_index.pkl` in the repo root.
+Place PDFs in `laws/federal` and `laws/lagos` before running `build_index.py`. The script emits `data/documents.json`, `data/indices/legal_index.faiss`, and `data/indices/bm25_index.pkl`.
 
 #### Required artifacts for deployment
 
 | File | Approx size | Purpose | Notes |
 | --- | --- | --- | --- |
-| `documents.json` | ~6.5 MB | Serialized chunk metadata/content | Must reside in repo root or mounted volume |
-| `legal_index.faiss` | ~19 MB | Dense vector index for FAISS search | Requires CPU build of FAISS present on host |
-| `bm25_index.pkl` | ~5 MB | Sparse BM25 index for hybrid retrieval | Loaded alongside FAISS during startup |
+| `data/documents.json` | ~6.5 MB | Serialized chunk metadata/content | Must reside in `data/` directory or mounted volume |
+| `data/indices/legal_index.faiss` | ~19 MB | Dense vector index for FAISS search | Requires CPU build of FAISS present on host |
+| `data/indices/bm25_index.pkl` | ~5 MB | Sparse BM25 index for hybrid retrieval | Loaded alongside FAISS during startup |
 
 These assets are git-ignored; upload them to your hosting volume (e.g., Railway persistent disk, S3 + download step) so FastAPI can load them when `load_knowledge_base()` runs.
 
 ### 2. Configure Environment Variables
 
 ```bash
-cp .env.example .env
-cp api/.env.example api/.env
-cp web/.env.local.example web/.env.local
+cp config/.env.example .env
+cp config/api.env.example api/.env
+cp config/web.env.example web/.env.local
 ```
 
 | Variable | Location | Notes |
@@ -120,13 +121,18 @@ cd web && npm run test  # Vitest component suite
 thelawsays_core/   Shared ingestion, retrieval, intent, and prompt helpers
 api/               FastAPI app (routers, services, schemas, deps, tests)
 web/               Next.js frontend (App Router, components, tests)
-scripts/dev.py     Helper script to run backend + frontend together
-app.py             Streamlit legacy UI
-build_index.py     PDF ingestion + FAISS/BM25 build script
+scripts/           Build and development scripts
+data/              Generated artifacts (documents, indices, logs)
+data/indices/      FAISS and BM25 index files
+data/logs/         Build logs and temporary files
+config/            Environment configuration templates
+docs/              Project documentation and assets
+notes/             Personal notes and study materials
+legacy/            Streamlit demo (kept for workshops)
 laws/              Source PDFs (ignored in git)
 ```
 
-Generated artifacts (`documents.json`, `legal_index.faiss`, `bm25_index.pkl`, etc.) should stay out of git—add to `.gitignore` if necessary.
+Generated artifacts in `data/` are git-ignored and should be regenerated with `python scripts/build_index.py`.
 
 ---
 
@@ -143,10 +149,10 @@ Generated artifacts (`documents.json`, `legal_index.faiss`, `bm25_index.pkl`, et
 
 ## Additional Docs
 
-- [`upgrade.md`](upgrade.md) – UI/feature roadmap.
+- [`docs/upgrade.md`](upgrade.md) – UI/feature roadmap.
+- [`docs/RAG_pipeline.md`](RAG_pipeline.md) – Retrieval + chunking internals.
 - [`api/README.md`](api/README.md) – Backend endpoints + setup notes.
 - [`web/README.md`](web/README.md) – Frontend architecture + commands.
-- [`RAG_pipeline.md`](RAG_pipeline.md) – Retrieval + chunking internals.
 
 ---
 
