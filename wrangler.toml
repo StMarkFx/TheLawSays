@@ -1,0 +1,30 @@
+name = "thelawsays-backend"
+main = "workers/main.js"
+compatibility_date = "2024-01-01"
+
+# AI binding for Cloudflare AI
+[ai]
+binding = "AI"
+
+# Vectorize binding for semantic search
+[[vectorize]]
+binding = "VECTORIZE_INDEX"
+index_name = "thelawsays-vectorize"
+
+# D1 binding for metadata storage
+[[d1_databases]]
+binding = "DATABASE"
+database_name = "thelawsays-db"
+database_id = "your-d1-id"  # Replace with actual D1 database ID
+
+# KV binding for caching (optional)
+[[kv_namespaces]]
+binding = "LAWS_KV"
+id = "your-kv-id"  # Replace with actual KV namespace ID
+
+[vars]
+ENVIRONMENT = "production"
+CORS_ORIGINS = "https://thelawsays.pages.dev,https://thelawsays.com"
+
+# Environment variables will be set via wrangler secret put
+# No OpenAI API key needed - using Cloudflare AI
