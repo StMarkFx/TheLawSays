@@ -36,11 +36,17 @@ data/documents.json
 
 
 # Node / Next.js
+node_modules/
 web/node_modules/
 web/.next/
 web/.turbo/
 web/dist/
 web/.env.local
+
+# Cloudflare
+.wrangler/
+workers/dist/
+*.log
 
 # Python env files
 .env
