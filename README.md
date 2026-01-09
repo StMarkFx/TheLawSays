@@ -2,9 +2,9 @@
 
 Modern AI legal assistant for Nigerian statutes with cited answers powered by a hybrid Retrieval-Augmented Generation (RAG) pipeline.
 
-- **Backend** – FastAPI (`api/`) with chat, feedback, and health endpoints.
-- **Frontend** – Next.js App Router (`web/`) featuring the new dark-first UI (pinned header/composer, mobile slide-in sidebar, inline RAG citations).
-- **Core** – `thelawsays_core/` owns ingestion, retrieval, intent classification, and prompting logic shared across clients.
+- **Backend** – Cloudflare Workers with Vectorize + Workers AI (`workers/`) providing serverless API endpoints.
+- **Frontend** – Next.js App Router (`web/`) deployed on Cloudflare Pages with dark-first UI.
+- **Core** – `thelawsays_core/` owns ingestion, retrieval, intent classification, and prompting logic.
 - **Legacy demo** – `app.py` Streamlit playground (kept for workshops and demos).
 
 ---
@@ -21,6 +21,7 @@ Modern AI legal assistant for Nigerian statutes with cited answers powered by a 
 
 ## Architecture Overview
 
+### Development Architecture
 ```
 PDF statutes --> build_index.py --> data/documents.json
                                   |                  data/indices/legal_index.faiss
@@ -29,6 +30,18 @@ PDF statutes --> build_index.py --> data/documents.json
                           thelawsays_core/
                                   |
  Next.js (web/) --> FastAPI (api/) --> OpenAI Chat Completions
+                        ^
+                        └── Intent classifier decides when to trigger retrieval
+```
+
+### Production Architecture (Cloudflare)
+```
+PDF statutes --> build_index.py --> Cloudflare Vectorize (embeddings)
+                                  |                  Cloudflare D1 (metadata)
+                                  v
+                        Cloudflare Workers (JavaScript/TypeScript)
+                                  |
+ Next.js --> Cloudflare Pages --> Workers AI + Vectorize queries
                         ^
                         └── Intent classifier decides when to trigger retrieval
 ```
@@ -102,6 +115,63 @@ streamlit run app.py
 ```
 
 The Streamlit UI consumes `thelawsays_core`, so answers match the production stack.
+
+---
+
+## Cloudflare Deployment
+
+### Prerequisites
+1. [Cloudflare Account](https://cloudflare.com) with Workers subscription
+2. [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/): `npm install -g wrangler`
+3. Authenticate: `wrangler auth login`
+
+### Setup Cloudflare Resources
+
+```bash
+# Create Vectorize index for embeddings
+wrangler vectorize create thelawsays-vectorize --dimensions=384 --metric=cosine
+
+# Create D1 database for metadata
+wrangler d1 create thelawsays-db
+
+# Create KV namespace for caching (optional)
+wrangler kv:namespace create "LAWS_CACHE"
+```
+
+### Deploy to Cloudflare
+
+```bash
+# Deploy backend (Workers)
+wrangler deploy
+
+# Deploy frontend (Pages)
+cd web
+npx wrangler pages deploy dist --compatibility-date 2024-01-01
+```
+
+### Environment Variables
+
+Set these in Cloudflare Dashboard > Workers > Your Worker > Settings > Variables:
+
+| Variable | Value | Notes |
+| --- | --- | --- |
+| `CORS_ORIGINS` | `https://thelawsays.pages.dev,https://thelawsays.com` | Comma-separated allowed origins |
+| `ENVIRONMENT` | `production` | Environment mode |
+| `VECTORIZE_INDEX` | `thelawsays-vectorize` | Your Vectorize index name |
+| `D1_DATABASE` | `thelawsays-db` | Your D1 database name |
+
+### Migrate Knowledge Base
+
+```bash
+# Run locally to generate embeddings
+python scripts/migrate-to-cloudflare.py
+
+# This will:
+# 1. Load existing FAISS indices
+# 2. Generate embeddings for all chunks
+# 3. Upload to Vectorize and D1
+# 4. Update metadata in D1
+```
 
 ---
 
