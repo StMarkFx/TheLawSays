@@ -1,0 +1,19 @@
+name = "thelawsays-frontend"
+compatibility_date = "2024-01-01"
+
+[build]
+command = "npm run build"
+cwd = "web"
+watch_dir = "web"
+
+[build.environment_variables]
+NODE_VERSION = "18"
+
+[vars]
+NEXT_PUBLIC_API_BASE_URL = "https://thelawsays-backend.your-subdomain.workers.dev"
+
+# Optional: Add Pages Functions for additional API routes
+# Uncomment and create functions/ directory if needed
+# [[pages_build_output.functions]]
+# directory = "functions"
+# functions/
