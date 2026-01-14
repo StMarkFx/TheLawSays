@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .dependencies import get_rag_service
+from .middleware import setup_security_middleware
 from .routes import get_api_router
 
 # Configure logging to output to stdout (for Railway logs)
@@ -71,6 +72,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Setup security middleware (rate limiting, headers, etc.)
+    setup_security_middleware(app)
+
     app.include_router(get_api_router())
     return app
 
