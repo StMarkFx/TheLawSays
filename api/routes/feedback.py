@@ -4,6 +4,7 @@ import logging
 
 from fastapi import APIRouter, status
 
+from ..middleware import feedback_rate_limit
 from ..schemas import FeedbackRequest
 
 logger = logging.getLogger(__name__)
@@ -16,6 +17,7 @@ router = APIRouter()
     status_code=status.HTTP_202_ACCEPTED,
     summary="Submit interaction feedback",
 )
+@feedback_rate_limit()
 async def submit_feedback(payload: FeedbackRequest) -> dict:
     # Future: forward to analytics pipeline. For now, just log.
     logger.info(

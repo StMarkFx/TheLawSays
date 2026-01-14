@@ -7,6 +7,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from ..dependencies import get_rag_service
+from ..middleware import chat_rate_limit
 from ..schemas import ChatRequest, ChatResponse
 from ..services.rag import RagService
 
@@ -16,6 +17,7 @@ router = APIRouter()
 
 
 @router.post("/chat", response_model=ChatResponse)
+@chat_rate_limit()
 async def chat_endpoint(
     payload: ChatRequest,
     service: RagService = Depends(get_rag_service),
