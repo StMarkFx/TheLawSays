@@ -42,6 +42,32 @@ class Settings(BaseSettings):
         default=True,
         validation_alias="ENABLE_MODERATION",
     )
+    # Rate limiting settings
+    rate_limit_chat_requests: int = Field(
+        default=10,
+        validation_alias="RATE_LIMIT_CHAT_REQUESTS",
+    )
+    rate_limit_chat_window: int = Field(
+        default=60,
+        validation_alias="RATE_LIMIT_CHAT_WINDOW",
+    )
+    rate_limit_feedback_requests: int = Field(
+        default=5,
+        validation_alias="RATE_LIMIT_FEEDBACK_REQUESTS",
+    )
+    rate_limit_feedback_window: int = Field(
+        default=3600,  # 1 hour in seconds
+        validation_alias="RATE_LIMIT_FEEDBACK_WINDOW",
+    )
+    # Security settings
+    trusted_hosts: str = Field(
+        default="thelawsays.com,localhost",
+        validation_alias="TRUSTED_HOSTS",
+    )
+    enable_https_redirect: bool = Field(
+        default=True,
+        validation_alias="ENABLE_HTTPS_REDIRECT",
+    )
 
 
 @lru_cache()
