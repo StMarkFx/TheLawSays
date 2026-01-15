@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "TheLawSays",
+    "slug": "thelawsays",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.thelawsays.app"
+    }
+  }
+}
