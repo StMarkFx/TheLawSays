@@ -3,16 +3,22 @@
  * Implements RAG functionality using Cloudflare AI and Vectorize.
  */
 
+const DEFAULT_TOPK = 3;
+const MAX_CONTEXT_CHUNKS = 4;
+const KV_TTL_SECONDS = 60 * 30;
+const AI_TIMEOUT_MS = 12000;
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const corsOrigin = getCorsOrigin(request, env);
 
     // Handle CORS preflight requests
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 200,
         headers: {
-          'Access-Control-Allow-Origin': env.CORS_ORIGINS?.split(',')[0] || '*',
+          'Access-Control-Allow-Origin': corsOrigin,
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
           'Access-Control-Max-Age': '86400',
@@ -26,11 +32,11 @@ export default {
         return await handleHealth();
       }
 
-      if (url.pathname === '/chat' && request.method === 'POST') {
+      if (url.pathname === '/v1/chat' && request.method === 'POST') {
         return await handleChat(request, env);
       }
 
-      if (url.pathname === '/feedback' && request.method === 'POST') {
+      if (url.pathname === '/v1/feedback' && request.method === 'POST') {
         return await handleFeedback(request, env);
       }
 
@@ -39,7 +45,7 @@ export default {
         status: 404,
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': env.CORS_ORIGINS?.split(',')[0] || '*',
+          'Access-Control-Allow-Origin': corsOrigin,
         },
       });
 
@@ -54,7 +60,7 @@ export default {
           status: 500,
           headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': env.CORS_ORIGINS?.split(',')[0] || '*',
+            'Access-Control-Allow-Origin': corsOrigin,
           },
         }
       );
@@ -75,6 +81,7 @@ async function handleHealth() {
  * Chat endpoint - main RAG functionality
  */
 async function handleChat(request, env) {
+  const corsOrigin = getCorsOrigin(request, env);
   const body = await request.json();
 
   // Validate request
@@ -83,35 +90,52 @@ async function handleChat(request, env) {
       status: 400,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': env.CORS_ORIGINS?.split(',')[0] || '*',
+        'Access-Control-Allow-Origin': corsOrigin,
       },
     });
   }
 
   try {
-    // Generate embedding for user query
-    const queryEmbedding = await generateEmbedding(body.message, env);
+    const jurisdiction = body.jurisdiction || 'auto';
+    const topK = body.top_k || DEFAULT_TOPK;
+    const cacheKey = await buildCacheKey(body.message, jurisdiction, topK);
+
+    const cached = await getCache(env, cacheKey);
+    if (cached) {
+      return new Response(JSON.stringify(cached), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': corsOrigin,
+        },
+      });
+    }
+
+    // Generate embedding for user query (cached)
+    const queryEmbedding = await getEmbedding(body.message, env);
 
     // Search Vectorize for similar documents
     const vectorResults = await searchVectorize(queryEmbedding, env, {
-      topK: body.top_k || 5,
-      jurisdiction: body.jurisdiction,
+      topK,
+      jurisdiction,
     });
 
-    // Classify intent to decide if retrieval is needed
-    const intent = await classifyIntent(body.message, env);
+    let chunks = extractChunksFromVectorize(vectorResults).slice(0, MAX_CONTEXT_CHUNKS);
 
-    let chunks = [];
-    let retrievalUsed = false;
-
-    if (intent.retrieval_required && vectorResults.length > 0) {
-      // Fetch chunk metadata from D1
-      chunks = await getChunksFromD1(vectorResults, env);
-      retrievalUsed = true;
+    if (env.USE_D1 === 'true' && env.DATABASE && vectorResults.length > 0) {
+      try {
+        const d1Chunks = await getChunksFromD1(vectorResults, env);
+        if (d1Chunks.length > 0) {
+          chunks = d1Chunks.slice(0, MAX_CONTEXT_CHUNKS);
+        }
+      } catch (error) {
+        console.warn('D1 lookup failed, falling back to Vectorize metadata.', error);
+      }
     }
 
+    const retrievalUsed = chunks.length > 0;
+
     // Generate response using Cloudflare AI
-    const answer = await generateAnswer(body.message, chunks, intent, env);
+    const answer = await generateAnswer(body.message, chunks, env);
 
     // Prepare response
     const response = {
@@ -125,16 +149,17 @@ async function handleChat(request, env) {
       })),
       retrieval_used: retrievalUsed,
       metadata: {
-        jurisdiction: body.jurisdiction,
-        intent_reason: intent.reason,
-        intent_label: intent.label,
+        jurisdiction,
+        top_k: topK,
       },
     };
+
+    await setCache(env, cacheKey, response);
 
     return new Response(JSON.stringify(response), {
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': env.CORS_ORIGINS?.split(',')[0] || '*',
+        'Access-Control-Allow-Origin': corsOrigin,
       },
     });
 
@@ -144,7 +169,7 @@ async function handleChat(request, env) {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': env.CORS_ORIGINS?.split(',')[0] || '*',
+        'Access-Control-Allow-Origin': corsOrigin,
       },
     });
   }
@@ -154,6 +179,7 @@ async function handleChat(request, env) {
  * Feedback endpoint
  */
 async function handleFeedback(request, env) {
+  const corsOrigin = getCorsOrigin(request, env);
   const body = await request.json();
 
   // Store feedback in D1 (simplified - just log for now)
@@ -162,7 +188,7 @@ async function handleFeedback(request, env) {
   return new Response(JSON.stringify({ status: 'received' }), {
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': env.CORS_ORIGINS?.split(',')[0] || '*',
+      'Access-Control-Allow-Origin': corsOrigin,
     },
   });
 }
@@ -170,11 +196,20 @@ async function handleFeedback(request, env) {
 /**
  * Generate embeddings using Cloudflare AI
  */
-async function generateEmbedding(text, env) {
-  const response = await env.AI.run('@cf/baai/bge-base-en-v1.5', {
-    text: [text],
-  });
-  return response.data[0];
+async function getEmbedding(text, env) {
+  const cacheKey = await hashString(`embed:${text}`);
+  const cached = await getCache(env, cacheKey);
+  if (cached && cached.embedding) {
+    return cached.embedding;
+  }
+
+  const response = await runWithTimeout(
+    env.AI.run('@cf/baai/bge-base-en-v1.5', { text: [text] }),
+    AI_TIMEOUT_MS
+  );
+  const embedding = response.data[0];
+  await setCache(env, cacheKey, { embedding });
+  return embedding;
 }
 
 /**
@@ -218,53 +253,20 @@ async function getChunksFromD1(vectorResults, env) {
   }));
 }
 
-/**
- * Classify user intent using Cloudflare AI
- */
-async function classifyIntent(message, env) {
-  const prompt = `
-Classify the following legal question and decide if document retrieval is needed.
-
-Question: "${message}"
-
-Instructions:
-- Determine if this question requires specific legal information from documents
-- Return JSON with: {"retrieval_required": boolean, "reason": string, "label": string}
-
-Examples:
-- "What is the penalty for theft?" -> {"retrieval_required": true, "reason": "Question asks for specific legal information", "label": "legal_info"}
-- "Hello, how are you?" -> {"retrieval_required": false, "reason": "Casual conversation", "label": "casual"}
-- "Explain Nigerian law" -> {"retrieval_required": true, "reason": "Requests legal explanation", "label": "legal_explanation"}
-
-Response must be valid JSON:
-  `;
-
-  const response = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
-    messages: [{ role: 'user', content: prompt }],
-    temperature: 0.1,
-  });
-
-  try {
-    const result = JSON.parse(response.response);
-    return {
-      retrieval_required: result.retrieval_required || false,
-      reason: result.reason || 'Unknown',
-      label: result.label || 'unknown',
-    };
-  } catch (error) {
-    console.error('Intent classification parsing error:', error);
-    return {
-      retrieval_required: true, // Default to retrieval if parsing fails
-      reason: 'Parsing error, defaulting to retrieval',
-      label: 'default',
-    };
-  }
+function extractChunksFromVectorize(vectorResults) {
+  return vectorResults.map(result => ({
+    id: result.id,
+    source: result.metadata?.source || 'unknown',
+    jurisdiction: result.metadata?.jurisdiction || 'federal',
+    text: result.metadata?.text || '',
+    score: result.score,
+  }));
 }
 
 /**
  * Generate answer using Cloudflare AI
  */
-async function generateAnswer(message, chunks, intent, env) {
+async function generateAnswer(message, chunks, env) {
   let context = '';
   if (chunks.length > 0) {
     context = '\n\nRelevant legal information:\n' +
@@ -286,11 +288,68 @@ Instructions:
 
 Answer:`;
 
-  const response = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
-    messages: [{ role: 'user', content: prompt }],
-    temperature: 0.3,
-    max_tokens: 1000,
-  });
+  const response = await runWithTimeout(
+    env.AI.run('@cf/meta/llama-3-8b-instruct', {
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      max_tokens: 800,
+    }),
+    AI_TIMEOUT_MS
+  );
 
   return response.response;
+}
+
+async function buildCacheKey(message, jurisdiction, topK) {
+  const payload = JSON.stringify({ message, jurisdiction, topK });
+  return await hashString(`chat:${payload}`);
+}
+
+async function hashString(value) {
+  const data = new TextEncoder().encode(value);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function getCache(env, key) {
+  if (!env.LAWS_KV) return null;
+  const cached = await env.LAWS_KV.get(key, 'json');
+  return cached || null;
+}
+
+async function setCache(env, key, value) {
+  if (!env.LAWS_KV) return;
+  await env.LAWS_KV.put(key, JSON.stringify(value), { expirationTtl: KV_TTL_SECONDS });
+}
+
+async function runWithTimeout(promise, timeoutMs) {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('AI request timed out')), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function getCorsOrigin(request, env) {
+  const origin = request.headers.get('Origin');
+  const allowed = (env.CORS_ORIGINS || '*')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (!origin || allowed.includes('*')) {
+    return '*';
+  }
+
+  if (allowed.includes(origin)) {
+    return origin;
+  }
+
+  return allowed[0] || '*';
 }
