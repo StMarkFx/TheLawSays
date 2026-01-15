@@ -42,6 +42,9 @@ web/.next/
 web/.turbo/
 web/dist/
 web/.env.local
+mobile/node_modules/
+mobile/.expo/
+mobile/.env
 
 # Cloudflare
 .wrangler/
@@ -51,6 +54,13 @@ workers/dist/
 # Python env files
 .env
 api/.env
+
+# Migration artifacts
+vectorize.ndjson
+vectorize-fixed.ndjson
+vectorize.clean.ndjson
+d1-schema.sql
+_chat.json
 
 # Logs
 *.log
