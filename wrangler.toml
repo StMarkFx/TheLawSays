@@ -15,16 +15,17 @@ index_name = "thelawsays-vectorize"
 [[d1_databases]]
 binding = "DATABASE"
 database_name = "thelawsays-db"
-database_id = "your-d1-id"  # Replace with actual D1 database ID
+database_id = "6613e6e9-e9f4-4578-9bb8-abab5d4bb3bf"
 
 # KV binding for caching (optional)
 [[kv_namespaces]]
 binding = "LAWS_KV"
-id = "your-kv-id"  # Replace with actual KV namespace ID
+id = "d19a0ab260cb41aa8f6fbc0a200030f4"
 
 [vars]
 ENVIRONMENT = "production"
-CORS_ORIGINS = "https://thelawsays.pages.dev,https://thelawsays.com"
+CORS_ORIGINS = "https://main.thelawsays-frontend.pages.dev,https://902435cc.thelawsays-frontend.pages.dev"
+USE_D1 = "true"
 
 # Environment variables will be set via wrangler secret put
 # No OpenAI API key needed - using Cloudflare AI
