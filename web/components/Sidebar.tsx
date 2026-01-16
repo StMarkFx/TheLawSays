@@ -41,12 +41,12 @@ export function Sidebar({ open, onClose, loading }: SidebarProps) {
                 statutes in seconds. Informative, not legal advice.
               </p>
               <Link
-                href="https://github.com/StMarkFx/TheLawSays"
+                href="https://github.com/stmarkadebayo/TheLawSays"
                 target="_blank"
                 className="mt-3 inline-flex items-center gap-2 text-sm text-foreground underline decoration-dotted underline-offset-4 transition hover:text-accent"
               >
                 <Github size={16} />
-                GitHub: github.com/StMarkFx/TheLawSays
+                GitHub: github.com/stmarkadebayo/TheLawSays
               </Link>
             </section>
 
@@ -71,12 +71,12 @@ export function Sidebar({ open, onClose, loading }: SidebarProps) {
                   linkedin.com/in/stmarkadebayo
                 </Link>
                 <Link
-                  href="https://github.com/StMarkFx"
+                  href="https://github.com/stmarkadebayo"
                   target="_blank"
                   className="flex items-center gap-2 text-foreground underline decoration-dotted underline-offset-4 transition hover:text-accent"
                 >
                   <Github size={16} />
-                  github.com/StMarkFx
+                  github.com/stmarkadebayo
                 </Link>
                 <Link
                   href="mailto:stmarkadebayo@gmail.com"
