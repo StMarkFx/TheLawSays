@@ -57,7 +57,7 @@ config/            Environment templates
 ```bash
 wrangler vectorize create thelawsays-vectorize --dimensions=384 --metric=cosine
 wrangler d1 create thelawsays-db
-wrangler kv namespace create "LAWS_CACHE"
+wrangler kv namespace create "LAWS_KV"
 ```
 
 ### 2) Generate and upload embeddings
@@ -144,6 +144,7 @@ cd web && npm run test  # Vitest component suite
 - The Cloudflare Workers backend is the production path.
 - FastAPI is kept for local development and legacy use.
 - Vectorize uses 384-dim embeddings (all-MiniLM-L6-v2).
+- D1 lookups can be toggled with `USE_D1` in `wrangler.toml`.
 
 ---
 
