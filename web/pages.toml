@@ -10,7 +10,7 @@ watch_dir = "web"
 NODE_VERSION = "18"
 
 [vars]
-NEXT_PUBLIC_API_BASE_URL = "https://thelawsays-backend.your-subdomain.workers.dev"
+NEXT_PUBLIC_API_BASE_URL = "https://thelawsays-backend.thelawsays.workers.dev"
 
 # Optional: Add Pages Functions for additional API routes
 # Uncomment and create functions/ directory if needed
