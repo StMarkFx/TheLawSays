@@ -1,3 +1,4 @@
+import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 
 import { Composer } from "@/components/Composer";
@@ -7,7 +8,7 @@ describe("Composer", () => {
     const handleSubmit = vi.fn();
     render(<Composer onSubmit={handleSubmit} />);
 
-    const input = screen.getByPlaceholderText("Ask TheLaw...");
+    const input = screen.getByPlaceholderText("Ask TheLaw");
     fireEvent.change(input, { target: { value: "What does the law say about fraud?" } });
 
     const button = screen.getByRole("button", { name: /send message/i });

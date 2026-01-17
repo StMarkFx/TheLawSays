@@ -4,13 +4,7 @@ const nextConfig = {
 
   // Cloudflare Pages optimizations
   images: {
-    loader: 'custom',
-    loaderFile: './image-loader.js',
-  },
-
-  // Optimize for edge runtime
-  experimental: {
-    runtime: 'edge',
+    unoptimized: true,
   },
 
   // Output configuration for Cloudflare Pages
