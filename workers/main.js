@@ -12,6 +12,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const corsOrigin = getCorsOrigin(request, env);
+    const requestId = crypto.randomUUID();
 
     // Handle CORS preflight requests
     if (request.method === 'OPTIONS') {
@@ -33,7 +34,7 @@ export default {
       }
 
       if (url.pathname === '/v1/chat' && request.method === 'POST') {
-        return await handleChat(request, env);
+        return await handleChat(request, env, requestId);
       }
 
       if (url.pathname === '/v1/feedback' && request.method === 'POST') {
@@ -50,11 +51,11 @@ export default {
       });
 
     } catch (error) {
-      console.error('Request error:', error);
+      console.error('Request error:', { requestId, path: url.pathname, error });
       return new Response(
         JSON.stringify({
           error: 'Internal server error',
-          details: error.message
+          request_id: requestId,
         }),
         {
           status: 500,
@@ -80,7 +81,7 @@ async function handleHealth() {
 /**
  * Chat endpoint - main RAG functionality
  */
-async function handleChat(request, env) {
+async function handleChat(request, env, requestId) {
   const corsOrigin = getCorsOrigin(request, env);
   const body = await request.json();
 
@@ -102,6 +103,7 @@ async function handleChat(request, env) {
 
     const cached = await getCache(env, cacheKey);
     if (cached) {
+      console.log('chat cache hit', { requestId, jurisdiction, topK });
       return new Response(JSON.stringify(cached), {
         headers: {
           'Content-Type': 'application/json',
@@ -111,22 +113,28 @@ async function handleChat(request, env) {
     }
 
     // Generate embedding for user query (cached)
+    console.log('chat embedding start', { requestId, jurisdiction, topK });
     const queryEmbedding = await getEmbedding(body.message, env);
+    console.log('chat embedding done', { requestId });
 
     // Search Vectorize for similar documents
+    console.log('vectorize query start', { requestId });
     const vectorResults = await searchVectorize(queryEmbedding, env, {
       topK,
       jurisdiction,
     });
+    console.log('vectorize query done', { requestId, matches: vectorResults.length });
 
     let chunks = extractChunksFromVectorize(vectorResults).slice(0, MAX_CONTEXT_CHUNKS);
 
     if (env.USE_D1 === 'true' && env.DATABASE && vectorResults.length > 0) {
       try {
+        console.log('d1 lookup start', { requestId });
         const d1Chunks = await getChunksFromD1(vectorResults, env);
         if (d1Chunks.length > 0) {
           chunks = d1Chunks.slice(0, MAX_CONTEXT_CHUNKS);
         }
+        console.log('d1 lookup done', { requestId, chunks: d1Chunks.length });
       } catch (error) {
         console.warn('D1 lookup failed, falling back to Vectorize metadata.', error);
       }
@@ -135,7 +143,9 @@ async function handleChat(request, env) {
     const retrievalUsed = chunks.length > 0;
 
     // Generate response using Cloudflare AI
+    console.log('llm start', { requestId, chunks: chunks.length });
     const answer = await generateAnswer(body.message, chunks, env);
+    console.log('llm done', { requestId });
 
     // Prepare response
     const response = {
@@ -164,14 +174,25 @@ async function handleChat(request, env) {
     });
 
   } catch (error) {
-    console.error('Chat error:', error);
-    return new Response(JSON.stringify({ error: 'Failed to process chat request' }), {
+    console.error('Chat error:', { requestId, error });
+    const details =
+      env.ENVIRONMENT && env.ENVIRONMENT !== 'production'
+        ? error?.message || String(error)
+        : undefined;
+    return new Response(
+      JSON.stringify({
+        error: 'Failed to process chat request',
+        request_id: requestId,
+        details,
+      }),
+      {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': corsOrigin,
       },
-    });
+      }
+    );
   }
 }
 
