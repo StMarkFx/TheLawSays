@@ -21,16 +21,16 @@ interface SidebarProps {
 
 const LINKS = [
   {
-    label: "GitHub: github.com/StMarkFx/TheLawSays",
-    url: "https://github.com/StMarkFx/TheLawSays"
+    label: "GitHub: github.com/stmarkadebayo/TheLawSays",
+    url: "https://github.com/stmarkadebayo/TheLawSays"
   },
   {
     label: "linkedin.com/in/stmarkadebayo",
     url: "https://linkedin.com/in/stmarkadebayo"
   },
   {
-    label: "github.com/StMarkFx",
-    url: "https://github.com/StMarkFx"
+    label: "github.com/stmarkadebayo",
+    url: "https://github.com/stmarkadebayo"
   },
   {
     label: "stmarkadebayo@gmail.com",
