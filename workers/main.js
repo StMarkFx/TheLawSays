@@ -98,7 +98,7 @@ async function handleChat(request, env, requestId) {
 
   try {
     const jurisdiction = body.jurisdiction || 'auto';
-    const topK = body.top_k || DEFAULT_TOPK;
+    const topK = body.top_k ?? DEFAULT_TOPK;
     const cacheKey = await buildCacheKey(body.message, jurisdiction, topK);
 
     const cached = await getCache(env, cacheKey);
@@ -117,13 +117,21 @@ async function handleChat(request, env, requestId) {
     const queryEmbedding = await getEmbedding(body.message, env);
     console.log('chat embedding done', { requestId });
 
-    // Search Vectorize for similar documents
-    console.log('vectorize query start', { requestId });
-    const vectorResults = await searchVectorize(queryEmbedding, env, {
-      topK,
-      jurisdiction,
-    });
-    console.log('vectorize query done', { requestId, matches: vectorResults.length });
+    const embeddingValid = Array.isArray(queryEmbedding) && queryEmbedding.length > 0;
+    const shouldQueryVectorize = topK > 0 && embeddingValid;
+    let vectorResults = [];
+
+    // Search Vectorize for similar documents when retrieval is enabled
+    if (shouldQueryVectorize) {
+      console.log('vectorize query start', { requestId });
+      vectorResults = await searchVectorize(queryEmbedding, env, {
+        topK,
+        jurisdiction,
+      });
+      console.log('vectorize query done', { requestId, matches: vectorResults.length });
+    } else {
+      console.log('vectorize skipped', { requestId, topK, embeddingValid });
+    }
 
     let chunks = extractChunksFromVectorize(vectorResults).slice(0, MAX_CONTEXT_CHUNKS);
 
