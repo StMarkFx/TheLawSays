@@ -5,6 +5,7 @@ import worker from '../main.js';
 
 function createEnv(overrides = {}) {
   const aiCalls = [];
+  const vectorizeCalls = [];
   const env = {
     CORS_ORIGINS: 'https://main.thelawsays-frontend.pages.dev',
     AI: {
@@ -20,13 +21,16 @@ function createEnv(overrides = {}) {
       },
     },
     VECTORIZE_INDEX: {
-      query: async () => ({ matches: [] }),
+      query: async (payload) => {
+        vectorizeCalls.push(payload);
+        return { matches: [] };
+      },
     },
     USE_D1: 'false',
     ...overrides,
   };
 
-  return { env, aiCalls };
+  return { env, aiCalls, vectorizeCalls };
 }
 
 test('health endpoint returns ok', async () => {
@@ -63,6 +67,22 @@ test('chat endpoint calls Cloudflare AI models and returns response', async () =
   assert.equal(aiCalls.length, 2);
   assert.equal(aiCalls[0].model, '@cf/baai/bge-base-en-v1.5');
   assert.equal(aiCalls[1].model, '@cf/meta/llama-3-8b-instruct');
+});
+
+test('chat endpoint skips vectorize when top_k is 0', async () => {
+  const { env, vectorizeCalls } = createEnv();
+  const request = new Request('https://example.com/v1/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: 'https://main.thelawsays-frontend.pages.dev',
+    },
+    body: JSON.stringify({ message: 'What is Nigerian contract law?', top_k: 0 }),
+  });
+
+  const response = await worker.fetch(request, env, {});
+  assert.equal(response.status, 200);
+  assert.equal(vectorizeCalls.length, 0);
 });
 
 test('chat endpoint validates message payload', async () => {
