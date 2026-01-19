@@ -70,7 +70,7 @@ test('chat endpoint calls Cloudflare AI models and returns response', async () =
 });
 
 test('chat endpoint skips vectorize when top_k is 0', async () => {
-  const { env, vectorizeCalls } = createEnv();
+  const { env, vectorizeCalls, aiCalls } = createEnv();
   const request = new Request('https://example.com/v1/chat', {
     method: 'POST',
     headers: {
@@ -83,6 +83,8 @@ test('chat endpoint skips vectorize when top_k is 0', async () => {
   const response = await worker.fetch(request, env, {});
   assert.equal(response.status, 200);
   assert.equal(vectorizeCalls.length, 0);
+  assert.equal(aiCalls.length, 1);
+  assert.equal(aiCalls[0].model, '@cf/meta/llama-3-8b-instruct');
 });
 
 test('chat endpoint validates message payload', async () => {
@@ -97,4 +99,44 @@ test('chat endpoint validates message payload', async () => {
   assert.equal(response.status, 400);
   const body = await response.json();
   assert.equal(body.error, 'Message is required');
+});
+
+test('chat endpoint falls back to OpenAI when Cloudflare AI fails', async () => {
+  const { env } = createEnv({
+    OPENAI_API_KEY: 'test-key',
+    AI: {
+      run: async (model) => {
+        if (model === '@cf/baai/bge-base-en-v1.5') {
+          return { data: [[0.1, 0.2, 0.3]] };
+        }
+        throw new Error('Cloudflare AI down');
+      },
+    },
+  });
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({
+      choices: [{ message: { content: 'OpenAI fallback answer.' } }],
+    }),
+  });
+
+  try {
+    const request = new Request('https://example.com/v1/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: 'https://main.thelawsays-frontend.pages.dev',
+      },
+      body: JSON.stringify({ message: 'What is Nigerian contract law?' }),
+    });
+
+    const response = await worker.fetch(request, env, {});
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.answer, 'OpenAI fallback answer.');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
