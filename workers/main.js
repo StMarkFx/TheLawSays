@@ -112,28 +112,34 @@ async function handleChat(request, env, requestId) {
       });
     }
 
-    // Generate embedding for user query (cached)
-    console.log('chat embedding start', { requestId, jurisdiction, topK });
-    const queryEmbedding = await getEmbedding(body.message, env);
-    console.log('chat embedding done', { requestId });
-
-    const embeddingValid = Array.isArray(queryEmbedding) && queryEmbedding.length > 0;
-    const shouldQueryVectorize = topK > 0 && embeddingValid;
     let vectorResults = [];
+    let chunks = [];
+    let embeddingValid = false;
 
-    // Search Vectorize for similar documents when retrieval is enabled
-    if (shouldQueryVectorize) {
-      console.log('vectorize query start', { requestId });
-      vectorResults = await searchVectorize(queryEmbedding, env, {
-        topK,
-        jurisdiction,
-      });
-      console.log('vectorize query done', { requestId, matches: vectorResults.length });
+    if (topK > 0) {
+      // Generate embedding for user query (cached)
+      console.log('chat embedding start', { requestId, jurisdiction, topK });
+      const queryEmbedding = await getEmbedding(body.message, env);
+      console.log('chat embedding done', { requestId });
+
+      embeddingValid = Array.isArray(queryEmbedding) && queryEmbedding.length > 0;
+
+      // Search Vectorize for similar documents when retrieval is enabled
+      if (embeddingValid) {
+        console.log('vectorize query start', { requestId });
+        vectorResults = await searchVectorize(queryEmbedding, env, {
+          topK,
+          jurisdiction,
+        });
+        console.log('vectorize query done', { requestId, matches: vectorResults.length });
+      } else {
+        console.log('vectorize skipped', { requestId, topK, embeddingValid });
+      }
     } else {
-      console.log('vectorize skipped', { requestId, topK, embeddingValid });
+      console.log('vectorize skipped', { requestId, topK, embeddingValid: false });
     }
 
-    let chunks = extractChunksFromVectorize(vectorResults).slice(0, MAX_CONTEXT_CHUNKS);
+    chunks = extractChunksFromVectorize(vectorResults).slice(0, MAX_CONTEXT_CHUNKS);
 
     if (env.USE_D1 === 'true' && env.DATABASE && vectorResults.length > 0) {
       try {
@@ -317,16 +323,62 @@ Instructions:
 
 Answer:`;
 
-  const response = await runWithTimeout(
-    env.AI.run('@cf/meta/llama-3-8b-instruct', {
+  const provider = (env.AI_PROVIDER || 'cloudflare').toLowerCase();
+
+  if (provider === 'openai' && env.OPENAI_API_KEY) {
+    return await generateAnswerWithOpenAI(prompt, env);
+  }
+
+  try {
+    const response = await runWithTimeout(
+      env.AI.run('@cf/meta/llama-3-8b-instruct', {
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.2,
+        max_tokens: 800,
+      }),
+      AI_TIMEOUT_MS
+    );
+
+    return response.response;
+  } catch (error) {
+    console.error('Cloudflare AI failed, attempting OpenAI fallback', {
+      error: error?.message || String(error),
+    });
+    if (env.OPENAI_API_KEY) {
+      return await generateAnswerWithOpenAI(prompt, env);
+    }
+    throw error;
+  }
+}
+
+async function generateAnswerWithOpenAI(prompt, env) {
+  const model = env.OPENAI_MODEL || 'gpt-4o-mini';
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.2,
       max_tokens: 800,
     }),
-    AI_TIMEOUT_MS
-  );
+  });
 
-  return response.response;
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(`OpenAI error: ${response.status} ${detail}`);
+  }
+
+  const data = await response.json();
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new Error('OpenAI error: empty response');
+  }
+
+  return content;
 }
 
 async function buildCacheKey(message, jurisdiction, topK) {
