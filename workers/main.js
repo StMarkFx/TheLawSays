@@ -83,7 +83,8 @@ async function handleHealth() {
  */
 async function handleChat(request, env, requestId) {
   const corsOrigin = getCorsOrigin(request, env);
-  const body = await request.json();
+  const body = await parseJsonBody(request, corsOrigin);
+  if (body instanceof Response) return body;
 
   // Validate request
   if (!body.message) {
@@ -215,7 +216,8 @@ async function handleChat(request, env, requestId) {
  */
 async function handleFeedback(request, env) {
   const corsOrigin = getCorsOrigin(request, env);
-  const body = await request.json();
+  const body = await parseJsonBody(request, corsOrigin);
+  if (body instanceof Response) return body;
 
   // Store feedback in D1 (simplified - just log for now)
   console.log('Feedback received:', body);
@@ -279,13 +281,20 @@ async function getChunksFromD1(vectorResults, env) {
 
   const result = await env.DATABASE.prepare(query).bind(...chunkIds).all();
 
-  return result.results.map(row => ({
-    id: row.id,
-    source: row.source,
-    jurisdiction: row.jurisdiction,
-    text: row.text,
-    score: vectorResults.find(r => r.id === row.id)?.score,
-  }));
+  const rowById = new Map(result.results.map(row => [row.id, row]));
+  return vectorResults
+    .map((result) => {
+      const row = rowById.get(result.id);
+      if (!row) return null;
+      return {
+        id: row.id,
+        source: row.source,
+        jurisdiction: row.jurisdiction,
+        text: row.text,
+        score: result.score,
+      };
+    })
+    .filter(Boolean);
 }
 
 function extractChunksFromVectorize(vectorResults) {
@@ -414,6 +423,20 @@ async function runWithTimeout(promise, timeoutMs) {
     return await Promise.race([promise, timeoutPromise]);
   } finally {
     clearTimeout(timeoutId);
+  }
+}
+
+async function parseJsonBody(request, corsOrigin) {
+  try {
+    return await request.json();
+  } catch (error) {
+    return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), {
+      status: 400,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': corsOrigin,
+      },
+    });
   }
 }
 
