@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "test:workers": "node workers/test-runner.mjs"
+  },
   "devDependencies": {
     "wrangler": "^4.57.0"
   }

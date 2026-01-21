@@ -148,4 +148,3 @@ cd web && npm run test  # Vitest component suite
 
 ---
 
-Built with Cloudflare Workers, Vectorize, D1, Next.js, Expo, and FastAPI.
